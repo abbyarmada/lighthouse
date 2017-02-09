@@ -49,10 +49,21 @@ describe('Page uses optimized images', () => {
     assert.equal(auditResult.results.length, 0);
   });
 
+  it('passes with warning when there is only small savings', () => {
+    const auditResult = UsesOptimizedImagesAudit.audit_({
+      OptimizedImages: [
+        generateImage('jpeg', 15000, 4000, 4500),
+      ],
+    });
+
+    assert.equal(auditResult.passes, true);
+    assert.equal(auditResult.results.length, 1);
+  });
+
   it('fails when one jpeg image is unoptimized', () => {
     const auditResult = UsesOptimizedImagesAudit.audit_({
       OptimizedImages: [
-        generateImage('jpeg', 50000, 40000, 45000),
+        generateImage('jpeg', 71000, 40000, 45000),
       ],
     });
 
@@ -66,7 +77,7 @@ describe('Page uses optimized images', () => {
   it('fails when one png image is highly unoptimized', () => {
     const auditResult = UsesOptimizedImagesAudit.audit_({
       OptimizedImages: [
-        generateImage('png', 100000, 40000),
+        generateImage('png', 150000, 40000),
       ],
     });
 
@@ -74,16 +85,13 @@ describe('Page uses optimized images', () => {
   });
 
   it('fails when images are collectively unoptimized', () => {
-    const auditResult = UsesOptimizedImagesAudit.audit_({
-      OptimizedImages: [
-        generateImage('png', 50000, 30000),
-        generateImage('jpeg', 50000, 30000, 40000),
-        generateImage('png', 50000, 30000),
-        generateImage('jpeg', 50000, 30000, 40000),
-        generateImage('png', 50001, 30000),
-      ],
-    });
+    const OptimizedImages = [];
+    for (let i = 0; i < 12; i++) {
+      OptimizedImages.push(generateImage('png', 100000, 10000));
+    }
 
+    const auditResult = UsesOptimizedImagesAudit.audit_({OptimizedImages});
+    assert.equal(auditResult.passes, false);
     assert.equal(auditResult.passes, false);
   });
 

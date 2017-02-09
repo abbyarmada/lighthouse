@@ -18,9 +18,9 @@
  * @fileoverview This audit determines if the images used are sufficiently larger
  * than Lighthouse optimized versions of the images (as determined by the gatherer).
  * Audit will fail if one of the conditions are met:
- *   * There is at least one JPEG or bitmap image that was larger than canvas encoded JPEG.
- *   * There is at least one image that would have saved more than 50KB by using WebP.
- *   * The savings of moving all images to WebP is greater than 100KB.
+ *   * There is at least one JPEG or bitmap image that was >10KB larger than canvas encoded JPEG.
+ *   * There is at least one image that would have saved more than 100KB by using WebP.
+ *   * The savings of moving all images to WebP is greater than 1MB.
  */
 'use strict';
 
@@ -28,8 +28,9 @@ const Audit = require('./byte-efficiency-audit');
 const URL = require('../../lib/url-shim');
 
 const IGNORE_THRESHOLD_IN_BYTES = 2048;
-const TOTAL_WASTED_BYTES_THRESHOLD = 100 * 1024;
-const WEBP_ALREADY_OPTIMIZED_THRESHOLD_IN_BYTES = 50 * 1024;
+const TOTAL_WASTED_BYTES_THRESHOLD = 1000 * 1024;
+const JPEG_ALREADY_OPTIMIZED_THRESHOLD_IN_BYTES = 25 * 1024;
+const WEBP_ALREADY_OPTIMIZED_THRESHOLD_IN_BYTES = 100 * 1024;
 
 class UsesOptimizedImages extends Audit {
   /**
@@ -91,7 +92,7 @@ class UsesOptimizedImages extends Audit {
       let jpegSavingsLabel;
       if (/(jpeg|bmp)/.test(image.mimeType)) {
         const jpegSavings = UsesOptimizedImages.computeSavings(image, 'jpeg');
-        if (jpegSavings.bytes > 0) {
+        if (jpegSavings.bytes > JPEG_ALREADY_OPTIMIZED_THRESHOLD_IN_BYTES) {
           hasAllEfficientImages = false;
           jpegSavingsLabel = `${jpegSavings.percent}%`;
         }
