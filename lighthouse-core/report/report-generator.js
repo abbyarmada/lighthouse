@@ -134,8 +134,8 @@ class ReportGenerator {
       const renderer = new marked.Renderer();
       renderer.em = str => `<em>${str}</em>`;
       renderer.link = (href, title, text) => {
-        title = title || text;
-        return `<a href="${href}" target="_blank" rel="noopener" title="${title}">${text}</a>`;
+        const titleAttr = title ? `title="${title}"` : '';
+        return `<a href="${href}" target="_blank" rel="noopener" ${titleAttr}>${text}</a>`;
       };
       renderer.codespan = function(str) {
         return `<code>${str}</code>`;
@@ -144,6 +144,10 @@ class ReportGenerator {
       renderer.code = function(code, language) {
         return `<pre>${code}</pre>`;
       };
+      renderer.image = function(src, title, text) {
+        return `<img src="${src}" alt="${text}" title="${title}">`;
+      };
+
       // Nuke wrapper <p> tag that gets generated.
       renderer.paragraph = function(str) {
         return str;
@@ -210,7 +214,19 @@ class ReportGenerator {
    * @return {!Array<string>} an array of CSS
    */
   getReportCSS() {
-    return [fs.readFileSync(path.join(__dirname, './styles/report.css'), 'utf8')];
+    // Cannot DRY this up and dynamically create paths because fs.readdirSync
+    // doesn't browserify well with a variable path. See https://github.com/substack/brfs/issues/36.
+    const partialStyles = [
+      fs.readFileSync(__dirname + '/../formatters/partials/critical-request-chains.css', 'utf8'),
+      fs.readFileSync(__dirname + '/../formatters/partials/table.css', 'utf8'),
+      fs.readFileSync(__dirname + '/../formatters/partials/url-list.css', 'utf8'),
+      fs.readFileSync(__dirname + '/../formatters/partials/user-timings.css', 'utf8')
+    ];
+
+    return [
+      fs.readFileSync(path.join(__dirname, './styles/report.css'), 'utf8'),
+      ...partialStyles
+    ];
   }
 
   /**
@@ -307,9 +323,7 @@ class ReportGenerator {
    * @param {?Object} reportsCatalog Basic info about all the reports to include in left nav bar
    * @return {string} HTML of the report page.
    */
-  generateHTML(results, reportContext, reportsCatalog) {
-    reportContext = reportContext || 'extension';
-
+  generateHTML(results, reportContext = 'extension', reportsCatalog) {
     this._registerFormatters(results.audits);
 
     results.aggregations.forEach(aggregation => {

@@ -53,9 +53,8 @@ class FirstMeaningfulPaint extends Audit {
   static audit(artifacts) {
     const trace = artifacts.traces[this.DEFAULT_PASS];
     return artifacts.requestTraceOfTab(trace).then(tabTrace => {
-      // Sometimes fMP is triggered before fCP
       if (!tabTrace.firstMeaningfulPaintEvt) {
-        throw new Error('No usable `firstMeaningfulPaint` event found in trace');
+        throw new Error('No usable `firstMeaningfulPaint(Candidate)` events found in trace');
       }
 
       // navigationStart is currently essential to FMP calculation.
@@ -81,30 +80,30 @@ class FirstMeaningfulPaint extends Audit {
           formatter: Formatter.SUPPORTED_FORMATS.NULL
         }
       });
-    }).catch(err => {
-      // Recover from trace parsing failures.
-      return FirstMeaningfulPaint.generateAuditResult({
-        rawValue: -1,
-        debugString: err.message
-      });
     });
   }
 
   static calculateScore(evts) {
-    const firstMeaningfulPaint = (evts.firstMeaningfulPaint.ts - evts.navigationStart.ts) / 1000;
-    const firstContentfulPaint = (evts.firstContentfulPaint.ts - evts.navigationStart.ts) / 1000;
+    const getTs = evt => evt && evt.ts;
+    const getTiming = evt => {
+      if (!evt) {
+        return undefined;
+      }
+      const timing = (evt.ts - evts.navigationStart.ts) / 1000;
+      return parseFloat(timing.toFixed(3));
+    };
 
     // Expose the raw, unchanged monotonic timestamps from the trace, along with timing durations
     const extendedInfo = {
       timestamps: {
-        navStart: evts.navigationStart.ts,
-        fCP: evts.firstContentfulPaint.ts,
-        fMP: evts.firstMeaningfulPaint.ts
+        navStart: getTs(evts.navigationStart),
+        fCP: getTs(evts.firstContentfulPaint),
+        fMP: getTs(evts.firstMeaningfulPaint)
       },
       timings: {
         navStart: 0,
-        fCP: parseFloat(firstContentfulPaint.toFixed(3)),
-        fMP: parseFloat(firstMeaningfulPaint.toFixed(3))
+        fCP: getTiming(evts.firstContentfulPaint),
+        fMP: getTiming(evts.firstMeaningfulPaint)
       }
     };
 
@@ -112,6 +111,7 @@ class FirstMeaningfulPaint extends Audit {
     //   < 1100ms: score≈100
     //   4000ms: score=50
     //   >= 14000ms: score≈0
+    const firstMeaningfulPaint = getTiming(evts.firstMeaningfulPaint);
     const distribution = TracingProcessor.getLogNormalDistribution(SCORING_MEDIAN,
         SCORING_POINT_OF_DIMINISHING_RETURNS);
     let score = 100 * distribution.computeComplementaryPercentile(firstMeaningfulPaint);
@@ -121,9 +121,9 @@ class FirstMeaningfulPaint extends Audit {
     score = Math.max(0, score);
 
     return {
-      duration: `${firstMeaningfulPaint.toFixed(1)}`,
+      duration: firstMeaningfulPaint.toFixed(1),
       score: Math.round(score),
-      rawValue: parseFloat(firstMeaningfulPaint.toFixed(1)),
+      rawValue: firstMeaningfulPaint,
       extendedInfo
     };
   }

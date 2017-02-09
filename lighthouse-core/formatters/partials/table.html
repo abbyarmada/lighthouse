@@ -1,57 +1,3 @@
-<style>
-.table_list {
-  margin-top: 8px;
-  border: 1px solid #EBEBEB;
-  border-spacing: 0;
-  max-width: 100%;
-}
-.table_list th,
-.table_list td {
-  overflow: auto;
-}
-.table_list th {
-  background-color: #eee;
-  padding: 15px 10px;
-  line-height: 1.2;
-}
-.table_list td {
-  padding: 10px;
-}
-.table_list th:first-of-type,
-.table_list td:first-of-type {
-  min-width: 40%;
-  white-space: nowrap;
-}
-.table_list tr:nth-child(even) {
-  background-color: #fafafa;
-}
-.table_list tr:hover {
-  background-color: #fafafa;
-}
-.table_list code, .table_list pre {
-  white-space: pre;
-  font-family: monospace;
-}
-.table_list em + code, .table_list em + pre {
-  margin-top: 10px;
-}
-
-.table_list.multicolumn {
-  display: flex;
-  flex-direction: column;
-}
-.table_list.multicolumn tr {
-  display: flex;
-}
-.table_list.multicolumn th,
-.table_list.multicolumn td {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  flex: 1;
-}
-</style>
-
 {{#createTable tableHeadings results }}
 
 {{#if rows}}
@@ -60,7 +6,9 @@
   <table class="table_list {{#if_not_eq headings.length 2}}multicolumn{{/if_not_eq}}">
     <thead>
       <tr>
-        {{#each headings}}<th>{{this}}</th>{{/each}}
+        {{#each ../tableHeadings}}
+          <th {{#if_eq @key "preview"}}class="preview-image"{{/if_eq}}>{{this}}</th>
+        {{/each}}
       </tr>
     </thead>
     <tbody>

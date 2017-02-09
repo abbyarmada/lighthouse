@@ -73,8 +73,9 @@ describe('Report', () => {
 
     assert.ok(html.includes('<footer'), 'no footer tag found');
     assert.ok(html.includes('<div id="lhresults-dump">'), 'report results were inlined');
-    assert.ok(html.includes('window.lhresults = JSON.parse('), 'lhresults created');
-    assert.ok(html.includes('.report-body {'), 'report.css inlined');
+    assert.ok(html.includes('window.lhresults'), 'lhresults created');
+    assert.ok(html.includes('.report-body'), 'report.css inlined');
+    assert.ok(html.includes('.table_list td'), 'formatters css inlined');
     assert.ok(html.includes('&quot;lighthouseVersion'), 'lhresults were escaped');
     assert.ok(/Version: x\.x\.x/g.test(html), 'Version doesn\'t appear in report');
     assert.ok(html.includes('export-button'), 'page includes export button');
@@ -108,8 +109,10 @@ describe('Report', () => {
       name: 'bad-actor-audit-name',
       category: 'Fake Audit Aggregation',
       description: 'Report does not inject unknown HTML but `renders code`',
-      helpText: '`Code like this` and [links](http://example.com) should be transformed. ' +
-          'but images (<img src="test.gif" onerror="alert(10)">) and <b>html should not</b>.'
+      helpText: '`Code like this` and [links](http://example.com) ' +
+          'should be transformed. but images (<img src="test.gif" onerror="alert(10)">) ' +
+          'and <b>html should not</b>. ' +
+          '[![Image preview](http://imagelink.com "Image preview")](http://imagelink.com)'
     };
 
     modifiedResults.audits['bad-actor-audit-name'] = item;
@@ -131,8 +134,10 @@ describe('Report', () => {
     assert.ok(html.includes('but <code>renders code</code>'), 'code blocks transformed');
     assert.ok(html.includes('<code>Code like this</code>'), 'code blocks transformed');
     assert.ok(html.includes(
-        '<a href="http://example.com" target="_blank" rel="noopener" title="links">links</a>'),
+        '<a href="http://example.com" target="_blank" rel="noopener"'),
         'anchors are transformed');
+    assert.ok(html.includes( '<a href="http://imagelink.com"'), 'images in links are transformed');
+    assert.ok(html.includes( '<img src="http://imagelink.com"'), 'images are transformed');
     assert.ok(!html.includes(
         '<img src="test.gif" onerror="alert(10)">'), 'non-recognized HTML is sanitized');
   });

@@ -23,6 +23,7 @@ const EventEmitter = require('events').EventEmitter;
 const URL = require('../lib/url-shim');
 
 const log = require('../lib/log.js');
+const DevtoolsLog = require('./devtools-log');
 
 const MAX_WAIT_FOR_FULLY_LOADED = 25 * 1000;
 const PAUSE_AFTER_LOAD = 500;
@@ -37,7 +38,12 @@ class Driver {
     this._traceCategories = Driver.traceCategories;
     this._eventEmitter = new EventEmitter();
     this._connection = connection;
-    connection.on('notification', event => this._eventEmitter.emit(event.method, event.params));
+    // currently only used by WPT where just Page and Network are needed
+    this._devtoolsLog = new DevtoolsLog(/^(Page|Network)\./);
+    connection.on('notification', event => {
+      this._devtoolsLog.record(event);
+      this._eventEmitter.emit(event.method, event.params);
+    });
     this.online = true;
     this._domainEnabledCounts = new Map();
   }
@@ -49,6 +55,7 @@ class Driver {
       'blink.console',
       'blink.user_timing',
       'benchmark',
+      'loading',
       'latencyInfo',
       'devtools.timeline',
       'disabled-by-default-devtools.timeline',
@@ -59,6 +66,13 @@ class Driver {
       // 'disabled-by-default-v8.cpu_profiler.hires',
       'disabled-by-default-devtools.screenshot'
     ];
+  }
+
+  /**
+   * @return {!Array<{method: string, params: !Object}>}
+   */
+  get devtoolsLog() {
+    return this._devtoolsLog.messages;
   }
 
   /**
@@ -532,7 +546,7 @@ class Driver {
 
   /**
    * @param {string} selector Selector to find in the DOM
-   * @return {!Promise<Element[]>} The found elements, or [], resolved in a promise
+   * @return {!Promise<!Array<!Element>>} The found elements, or [], resolved in a promise
    */
   querySelectorAll(selector) {
     return this.sendCommand('DOM.getDocument')
@@ -570,6 +584,9 @@ class Driver {
       throw new Error('DOM domain enabled when starting trace');
     }
 
+    this._devtoolsLog.reset();
+    this._devtoolsLog.beginRecording();
+
     // Enable Page domain to wait for Page.loadEventFired
     return this.sendCommand('Page.enable')
       .then(_ => this.sendCommand('Tracing.start', tracingOpts));
@@ -579,6 +596,7 @@ class Driver {
     return new Promise((resolve, reject) => {
       // When the tracing has ended this will fire with a stream handle.
       this.once('Tracing.tracingComplete', streamHandle => {
+        this._devtoolsLog.endRecording();
         this._readTraceFromStream(streamHandle)
             .then(traceContents => resolve(traceContents), reject);
       });

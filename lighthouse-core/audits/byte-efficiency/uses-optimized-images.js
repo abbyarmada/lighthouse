@@ -101,6 +101,7 @@ class UsesOptimizedImages extends Audit {
 
       results.push({
         url,
+        preview: {url: image.url, mimeType: image.mimeType},
         totalBytes: image.originalSize,
         wastedBytes: webpSavings.bytes,
         webpSavings: `${webpSavings.percent}%`,
@@ -120,6 +121,7 @@ class UsesOptimizedImages extends Audit {
       debugString,
       results,
       tableHeadings: {
+        preview: '',
         url: 'URL',
         totalKb: 'Original (KB)',
         wastedKb: 'Savings (KB)',

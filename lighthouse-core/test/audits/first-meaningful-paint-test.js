@@ -22,6 +22,8 @@ const traceEvents = require('../fixtures/traces/progressive-app.json');
 const badNavStartTrace = require('../fixtures/traces/bad-nav-start-ts.json');
 const lateTracingStartedTrace = require('../fixtures/traces/tracingstarted-after-navstart.json');
 const preactTrace = require('../fixtures/traces/preactjs.com_ts_of_undefined.json');
+const noFMPtrace = require('../fixtures/traces/no_fmp_event.json');
+const noFCPtrace = require('../fixtures/traces/airhorner_no_fcp');
 
 const GatherRunner = require('../../gather/gather-runner.js');
 const computedArtifacts = GatherRunner.instantiateComputedArtifacts();
@@ -69,8 +71,8 @@ describe('Performance: first-meaningful-paint audit', () => {
     });
   });
 
-  describe('finds correct FMP in various traces', () => {
-    it('finds the fMP if there was a tracingStartedInPage after the frame\'s navStart', () => {
+  describe('finds correct FMP', () => {
+    it('if there was a tracingStartedInPage after the frame\'s navStart', () => {
       return FMPAudit.audit(generateArtifactsWithTrace(lateTracingStartedTrace)).then(result => {
         assert.equal(result.displayValue, '529.9ms');
         assert.equal(result.rawValue, 529.9);
@@ -80,7 +82,7 @@ describe('Performance: first-meaningful-paint audit', () => {
       });
     });
 
-    it('finds the fMP if there was a tracingStartedInPage after the frame\'s navStart #2', () => {
+    it('if there was a tracingStartedInPage after the frame\'s navStart #2', () => {
       return FMPAudit.audit(generateArtifactsWithTrace(badNavStartTrace)).then(result => {
         assert.equal(result.displayValue, '632.4ms');
         assert.equal(result.rawValue, 632.4);
@@ -90,7 +92,7 @@ describe('Performance: first-meaningful-paint audit', () => {
       });
     });
 
-    it('finds the fMP if it appears slightly before the fCP', () => {
+    it('if it appears slightly before the fCP', () => {
       return FMPAudit.audit(generateArtifactsWithTrace(preactTrace)).then(result => {
         assert.equal(result.displayValue, '878.4ms');
         assert.equal(result.rawValue, 878.4);
@@ -98,6 +100,27 @@ describe('Performance: first-meaningful-paint audit', () => {
         assert.equal(result.extendedInfo.value.timings.fCP, 879.046);
         assert.ok(!result.debugString);
       });
+    });
+
+    it('from candidates if no defined FMP exists', () => {
+      return FMPAudit.audit(generateArtifactsWithTrace(noFMPtrace)).then(result => {
+        assert.equal(result.displayValue, '4460.9ms');
+        assert.equal(result.rawValue, 4460.9);
+        assert.equal(result.extendedInfo.value.timings.fCP, 1494.73);
+        assert.ok(!result.debugString);
+      });
+    });
+  });
+
+  it('handles traces missing an FCP', () => {
+    return FMPAudit.audit(generateArtifactsWithTrace(noFCPtrace)).then(result => {
+      assert.strictEqual(result.debugString, undefined);
+      assert.strictEqual(result.displayValue, '482.3ms');
+      assert.strictEqual(result.rawValue, 482.3);
+      assert.strictEqual(result.extendedInfo.value.timings.fCP, undefined);
+      assert.strictEqual(result.extendedInfo.value.timings.fMP, 482.318);
+      assert.strictEqual(result.extendedInfo.value.timestamps.fCP, undefined);
+      assert.strictEqual(result.extendedInfo.value.timestamps.fMP, 2149509604903);
     });
   });
 });

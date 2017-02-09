@@ -71,6 +71,7 @@ class UsesResponsiveImages extends Audit {
 
     return {
       url,
+      preview: {url: image.src, mimeType: image.mimeType},
       totalBytes,
       wastedBytes,
       isWasteful: wastedRatioFullDPR > WASTEFUL_THRESHOLD_AS_RATIO,
@@ -113,6 +114,7 @@ class UsesResponsiveImages extends Audit {
       passes: !hasWastefulImage,
       results,
       tableHeadings: {
+        preview: '',
         url: 'URL',
         totalKb: 'Original (KB)',
         wastedKb: 'Savings (KB)',

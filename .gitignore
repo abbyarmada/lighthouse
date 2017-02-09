@@ -14,8 +14,10 @@ results.html
 last-run-results.html
 
 *.trace.json
+*.devtoolslog.json
 *.screenshots.html
 *.report.html
+*.artifacts.log
 
 closure-error.log
 
@@ -28,4 +30,3 @@ lighthouse-cli/commands/*.js
 
 lighthouse-cli/types/*.js
 lighthouse-cli/types/*.map
-

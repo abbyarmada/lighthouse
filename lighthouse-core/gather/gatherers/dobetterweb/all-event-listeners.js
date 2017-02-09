@@ -41,7 +41,7 @@ class EventListeners extends Gatherer {
   /**
    * @param {number|string} nodeIdOrObject The node id of the element or the
    *     string of and object ('document', 'window').
-   * @return {!Promise<!Array.<EventListener>>}
+   * @return {!Promise<!Array<{listeners: !Array, tagName: string}>>}
    * @private
    */
   _listEventListeners(nodeIdOrObject) {
@@ -74,7 +74,7 @@ class EventListeners extends Gatherer {
    * listenForScriptParsedEvents should be called before this method to ensure
    * the page's parsed scripts are collected at page load.
    * @param {string} nodeId The node to look for attached event listeners.
-   * @return {!Promise<!Array.<Object>>} List of event listeners attached to
+   * @return {!Promise<!Array<!Object>>} List of event listeners attached to
    *     the node.
    */
   getEventListeners(nodeId) {
@@ -107,18 +107,15 @@ class EventListeners extends Gatherer {
 
   /**
    * Aggregates the event listeners used on each element into a single list.
-   * @param {Array.<Element>} nodes List of elements to fetch event listeners for.
-   * @return {!Promise<!Array.<Object>>} Resolves to a list of all the event
+   * @param {!Array<!Element>} nodes List of elements to fetch event listeners for.
+   * @return {!Promise<!Array<!Object>>} Resolves to a list of all the event
    *     listeners found across the elements.
    */
   collectListeners(nodes) {
-    return nodes.reduce((chain, node) => {
-      return chain.then(prevArr => {
-        // Call getEventListeners once for each node in the list.
-        return this.getEventListeners(node.element ? node.element.nodeId : node)
-            .then(result => prevArr.concat(result));
-      });
-    }, Promise.resolve([]));
+    // Gather event listeners from each node in parallel.
+    return Promise.all(nodes.map(node => {
+      return this.getEventListeners(node.element ? node.element.nodeId : node);
+    })).then(nestedListeners => [].concat(...nestedListeners));
   }
 
   beforePass(options) {
@@ -127,18 +124,17 @@ class EventListeners extends Gatherer {
     return this.listenForScriptParsedEvents();
   }
 
+  /**
+   * @param {!Object} options
+   * @return {!Promise<!Array<!Object>>}
+   */
   afterPass(options) {
     return this.unlistenForScriptParsedEvents()
-        .then(_ => options.driver.querySelectorAll('body, body /deep/ *')) // drill into shadow trees
-        .then(nodes => {
-          nodes.push('document', 'window');
-          return this.collectListeners(nodes);
-        }).catch(_ => {
-          return {
-            rawValue: -1,
-            debugString: 'Unable to collect passive events listener usage.'
-          };
-        });
+      .then(_ => options.driver.querySelectorAll('body, body /deep/ *')) // drill into shadow trees
+      .then(nodes => {
+        nodes.push('document', 'window');
+        return this.collectListeners(nodes);
+      });
   }
 }
 

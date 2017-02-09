@@ -46,10 +46,7 @@ function checkOutputPath(path: string): string {
   return path;
 }
 
-function formatAggregationResultItem(score: boolean | number | string, suffix?: string) {
-  // Until we only support node 6 we can not use default args.
-  suffix = suffix || '';
-
+function formatAggregationResultItem(score: boolean | number | string, suffix = '') {
   if (typeof score === 'boolean') {
     return score ? `${log.greenify(log.tick)}` : `${log.redify(log.cross)}`;
   }
@@ -106,9 +103,6 @@ function createOutput(results: Results, outputMode: OutputMode): string {
         } else {
           auditResult = subitem as AuditResult;
         }
-
-        if (auditResult.comingSoon === true)
-          return;
 
         const formattedScore = auditResult.error ? `${log.redify('‽')}` :
             `${formatAggregationResultItem(auditResult.score)}`;
