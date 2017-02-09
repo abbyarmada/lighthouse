@@ -17,10 +17,10 @@
  /**
   * @fileoverview Checks to see if the images used on the page are larger than
   *   their display sizes. The audit will list all images that are larger than
-  *   their display size regardless of DPR (a 1000px wide image displayed as a
-  *   500px high-res image on a Retina display will show up as 75% unused);
-  *   however, the audit will only fail pages that use images that have waste
-  *   when computed with DPR taken into account.
+  *   their display size with DPR (a 1000px wide image displayed as a
+  *   500px high-res image on a Retina display is 100% used);
+  *   However, the audit will only fail pages that use images that have waste
+  *   beyond a particular byte threshold.
   */
 'use strict';
 
@@ -28,7 +28,7 @@ const Audit = require('./byte-efficiency-audit');
 const URL = require('../../lib/url-shim');
 
 const IGNORE_THRESHOLD_IN_BYTES = 2048;
-const WASTEFUL_THRESHOLD_AS_RATIO = 0.1;
+const WASTEFUL_THRESHOLD_IN_BYTES = 50 * 1024;
 
 class UsesResponsiveImages extends Audit {
   /**
@@ -55,26 +55,27 @@ class UsesResponsiveImages extends Audit {
   static computeWaste(image, DPR) {
     const url = URL.getDisplayName(image.src);
     const actualPixels = image.naturalWidth * image.naturalHeight;
-    const usedPixels = image.clientWidth * image.clientHeight;
-    const usedPixelsFullDPR = usedPixels * Math.pow(DPR, 2);
+    const usedPixels = image.clientWidth * image.clientHeight * Math.pow(DPR, 2);
     const wastedRatio = 1 - (usedPixels / actualPixels);
-    const wastedRatioFullDPR = 1 - (usedPixelsFullDPR / actualPixels);
     const totalBytes = image.networkRecord.resourceSize;
     const wastedBytes = Math.round(totalBytes * wastedRatio);
 
     if (!Number.isFinite(wastedRatio)) {
       return new Error(`Invalid image sizing information ${url}`);
     } else if (wastedRatio <= 0 || wastedBytes < IGNORE_THRESHOLD_IN_BYTES) {
-      // Image did not have sufficient resolution to fill display at DPR=1
+      // Image did not have sufficient resolution to fill display size
       return null;
     }
 
     return {
       url,
-      preview: {url: image.src, mimeType: image.mimeType},
+      preview: {
+        url: image.networkRecord.url,
+        mimeType: image.networkRecord.mimeType
+      },
       totalBytes,
       wastedBytes,
-      isWasteful: wastedRatioFullDPR > WASTEFUL_THRESHOLD_AS_RATIO,
+      isWasteful: wastedBytes > WASTEFUL_THRESHOLD_IN_BYTES,
       potentialSavings: Math.round(100 * wastedRatio) + '%'
     };
   }
