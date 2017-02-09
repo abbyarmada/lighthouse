@@ -26,6 +26,7 @@ import {ChromeLauncher} from './chrome-launcher';
 import * as Commands from './commands/commands';
 const lighthouse = require('../lighthouse-core');
 const log = require('../lighthouse-core/lib/log');
+const Driver = require('../lighthouse-core/gather/driver.js');
 import * as path from 'path';
 const perfOnlyConfig = require('../lighthouse-core/config/perf.json');
 const performanceXServer = require('./performance-experiment/server');
@@ -116,7 +117,7 @@ Example: --output-path=./lighthouse-results.html`
   .default('output', Printer.GetValidOutputOptions()[Printer.OutputMode.pretty])
   .default('output-path', 'stdout')
   .default('port', 9222)
-  .default('timeout', 25)
+  .default('timeout', Driver.MAX_WAIT_FOR_FULLY_LOADED / 1000)
   .check((argv: {listAllAudits?: boolean, listTraceCategories?: boolean, _: Array<any>}) => {
     // Make sure lighthouse has been passed a url, or at least one of --list-all-audits
     // or --list-trace-categories. If not, stop the program and ask for a url
