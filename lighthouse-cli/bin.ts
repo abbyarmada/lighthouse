@@ -62,7 +62,8 @@ const cliFlags = yargs
     'list-trace-categories',
     'config-path',
     'perf',
-    'port'
+    'port',
+    'timeout'
   ], 'Configuration:')
   .describe({
     'disable-device-emulation': 'Disable Nexus 5X emulation',
@@ -75,6 +76,7 @@ const cliFlags = yargs
     'config-path': 'The path to the config JSON.',
     'perf': 'Use a performance-test-only configuration',
     'port': 'The port to use for the debugging protocol. Use 0 for a random port',
+    'timeout': 'The timeout in seconds to wait for the page to load before continuing',
     'skip-autolaunch': 'Skip autolaunch of Chrome when already running instance is not found',
     'select-chrome': 'Interactively choose version of Chrome to use when multiple installations are found',
     'interactive': 'Open Lighthouse in interactive mode'
@@ -114,6 +116,7 @@ Example: --output-path=./lighthouse-results.html`
   .default('output', Printer.GetValidOutputOptions()[Printer.OutputMode.pretty])
   .default('output-path', 'stdout')
   .default('port', 9222)
+  .default('timeout', 25)
   .check((argv: {listAllAudits?: boolean, listTraceCategories?: boolean, _: Array<any>}) => {
     // Make sure lighthouse has been passed a url, or at least one of --list-all-audits
     // or --list-trace-categories. If not, stop the program and ask for a url
@@ -278,7 +281,8 @@ function saveResults(results: Results,
 
 function runLighthouse(url: string,
                        flags: {port: number, skipAutolaunch: boolean, selectChrome: boolean, output: any,
-                         outputPath: string, interactive: boolean, saveArtifacts: boolean, saveAssets: boolean},
+                         outputPath: string, interactive: boolean, saveArtifacts: boolean, saveAssets: boolean
+                         timeout: number},
                        config: Object): Promise<undefined> {
 
   let chromeLauncher: ChromeLauncher;

@@ -420,10 +420,11 @@ class Driver {
    * - MAX_WAIT_FOR_FULLY_LOADED milliseconds have passed.
    * See https://github.com/GoogleChrome/lighthouse/issues/627 for more.
    * @param {number} pauseAfterLoadMs
+   * @param {number} maxTimeoutMs
    * @return {!Promise}
    * @private
    */
-  _waitForFullyLoaded(pauseAfterLoadMs) {
+  _waitForFullyLoaded(pauseAfterLoadMs, maxTimeoutMs) {
     let maxTimeoutHandle;
 
     // Listener for onload. Resolves pauseAfterLoadMs ms after load.
@@ -443,10 +444,10 @@ class Driver {
       };
     });
 
-    // Last resort timeout. Resolves MAX_WAIT_FOR_FULLY_LOADED ms from now on
+    // Last resort timeout. Resolves maxTimeoutMs ms from now on
     // cleanup function that removes loadEvent and network idle listeners.
     const maxTimeoutPromise = new Promise((resolve, reject) => {
-      maxTimeoutHandle = setTimeout(resolve, MAX_WAIT_FOR_FULLY_LOADED);
+      maxTimeoutHandle = setTimeout(resolve, maxTimeoutMs);
     }).then(_ => {
       return function() {
         log.warn('Driver', 'Timed out waiting for page load. Moving on...');
@@ -477,11 +478,15 @@ class Driver {
     const waitForLoad = _options.waitForLoad || false;
     const disableJS = _options.disableJavaScript || false;
     const pauseAfterLoadMs = (_options.flags && _options.flags.pauseAfterLoad) || PAUSE_AFTER_LOAD;
+    let maxWaitMs = MAX_WAIT_FOR_FULLY_LOADED;
+    if (_options.flags && _options.flags.timeout) {
+      maxWaitMs = 1000 * _options.flags.timeout;
+    }
 
     return this.sendCommand('Page.enable')
       .then(_ => this.sendCommand('Emulation.setScriptExecutionDisabled', {value: disableJS}))
       .then(_ => this.sendCommand('Page.navigate', {url}))
-      .then(_ => waitForLoad && this._waitForFullyLoaded(pauseAfterLoadMs));
+      .then(_ => waitForLoad && this._waitForFullyLoaded(pauseAfterLoadMs, maxWaitMs));
   }
 
   /**
