@@ -176,7 +176,7 @@ class UnusedCSSRules extends Audit {
     UnusedCSSRules.countUnusedRules(usage, indexedSheets);
     const results = Object.keys(indexedSheets).map(sheetId => {
       return UnusedCSSRules.mapSheetToResult(indexedSheets[sheetId], pageUrl);
-    }).filter(sheet => sheet && sheet.numUnused > 0);
+    }).filter(sheet => sheet && sheet.wastedBytes > 1024);
 
     return {
       results,
